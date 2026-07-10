@@ -43,6 +43,12 @@ export interface GtRuntime {
 declare global {
   interface Window {
     gt: GtRuntime
+    /** Opt-in runtime boot config, set before loading /__gt/runtime.js to force a
+     *  local in-browser workspace — used by the standalone demo (see main.tsx).
+     *  Never set inside General Text. */
+    __gtConfig?: { local?: boolean }
+    /** Marks the standalone "try the demo" session, so the store seeds sample data. */
+    __spudDemo?: boolean
   }
 }
 

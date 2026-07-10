@@ -139,8 +139,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       setReady(true)
 
-      // Seed the live demo once, only when truly empty.
-      if (window.gt.mode === 'demo') {
+      // Seed sample content once, only when truly empty: in the gallery "try it
+      // live" demo (mode 'demo') and in the standalone deployed demo (__spudDemo).
+      if (window.gt.mode === 'demo' || window.__spudDemo) {
         const files = await window.gt.listFiles()
         if (files.length === 0 && stateRef.current.events.length === 0) {
           await seedDemo((drafts) => dispatchImpl(drafts))
