@@ -7,6 +7,7 @@ import {
   emptyState,
   mentionEdges,
   outgoingMentions,
+  timelineLinks,
   versionString,
   type State,
 } from './reducer'
@@ -32,9 +33,9 @@ function fold(events: SpudEvent[]): State {
 }
 
 describe('version fold', () => {
-  it('plants at 0.1.0', () => {
+  it('plants at 0.0.0', () => {
     const s = fold([ev('spud.plant', 'spd_a', { title: 'Idea' })])
-    expect(versionString(s.spuds['spd_a']!.version)).toBe('0.1.0')
+    expect(versionString(s.spuds['spd_a']!.version)).toBe('0.0.0')
   })
 
   it('comment→patch, edit→minor, major edit→major', () => {
@@ -45,11 +46,11 @@ describe('version fold', () => {
       ev('spud.edit', 'spd_a', { body: 'refined' }),
       ev('spud.edit', 'spd_a', { body: 'reframed', major: true }),
     ])
-    // 0.1.0 → +2 patch 0.1.2 → minor edit 0.2.0 → major edit 1.0.0
+    // 0.0.0 → +2 patch 0.0.2 → minor edit 0.1.0 → major edit 1.0.0
     expect(versionString(s.spuds['spd_a']!.version)).toBe('1.0.0')
     expect(s.spuds['spd_a']!.commentCount).toBe(2)
     expect(s.spuds['spd_a']!.revisions.map((r) => `${r.kind}@${r.v}`)).toEqual([
-      'plant@0.1', 'edit@0.2', 'major@1.0',
+      'plant@0.0', 'edit@0.1', 'major@1.0',
     ])
   })
 
@@ -57,7 +58,7 @@ describe('version fold', () => {
     const plant = ev('spud.plant', 'spd_a', { title: 'Idea' })
     const c = ev('comment.add', 'cmt_1', { spud: 'spd_a', body: 'hi' })
     const s = fold([plant, c, c, plant])
-    expect(versionString(s.spuds['spd_a']!.version)).toBe('0.1.1')
+    expect(versionString(s.spuds['spd_a']!.version)).toBe('0.0.1')
     expect(s.spuds['spd_a']!.commentCount).toBe(1)
   })
 })
@@ -94,6 +95,28 @@ describe('mentions form connections', () => {
       ev('comment.add', 'cmt_1', { spud: 'spd_b', body: `see ${mentionToken('spd_a', 'Target')}` }),
     ])
     expect(backlinks(s, 'spd_a').map((x) => x.id)).toEqual(['spd_b'])
+  })
+})
+
+describe('timeline links', () => {
+  it('pins the connecting event and the target version at that moment', () => {
+    // B plants and gets edited; later A's edit mentions B → link at A's edit ts,
+    // targeting B's most recent change at/before then (B's edit, not its plant).
+    const s = fold([
+      ev('spud.plant', 'spd_b', { title: 'B' }), // ts …:01
+      ev('spud.plant', 'spd_a', { title: 'A' }), // ts …:02
+      ev('spud.edit', 'spd_b', { body: 'b v0.1' }), // ts …:03  (B advances)
+      ev('spud.edit', 'spd_a', { body: `inspired by ${mentionToken('spd_b', 'B')}` }), // ts …:04
+    ])
+    const links = timelineLinks(s)
+    expect(links).toHaveLength(1)
+    const l = links[0]!
+    expect([l.from, l.to]).toEqual(['spd_a', 'spd_b'])
+    // atTs = A's edit; targetTs = B's edit (its latest change at/before atTs)
+    const aEdit = s.events.find((e) => e.type === 'spud.edit' && e.subject === 'spd_a')!
+    const bEdit = s.events.find((e) => e.type === 'spud.edit' && e.subject === 'spd_b')!
+    expect(l.atTs).toBe(aEdit.ts)
+    expect(l.targetTs).toBe(bEdit.ts)
   })
 })
 

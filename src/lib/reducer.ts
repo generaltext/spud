@@ -104,8 +104,8 @@ function applySpud(state: State, ev: SpudEvent, verb: string, data: Record<strin
       id: ev.subject,
       title,
       body,
-      version: { major: 0, minor: 1, patch: 0 },
-      revisions: [{ v: '0.1', kind: 'plant', title, body, ts: ev.ts, by: ev.actor }],
+      version: { major: 0, minor: 0, patch: 0 },
+      revisions: [{ v: '0.0', kind: 'plant', title, body, ts: ev.ts, by: ev.actor }],
       tags: [],
       commentCount: 0,
       archived: false,
@@ -264,6 +264,62 @@ export function backlinks(state: State, spudId: string): SpudRecord[] {
     if (mentionedIds(c.body).includes(spudId)) ids.add(c.spud)
   }
   return [...ids].map((id) => state.spuds[id]).filter((s): s is SpudRecord => !!s && !s.archived)
+}
+
+/**
+ * When did idea A first reference idea B, and what was B's version at that moment?
+ * Because the log is append-only, we can pinpoint the exact edit or comment that
+ * introduced each @mention (its `atTs`) and the latest change to B at or before
+ * then (`targetTs`) — enough to draw a connector on the timeline from the moment
+ * the link was made to the version of the target it pointed at.
+ */
+export interface TimelineLink {
+  from: string
+  to: string
+  atTs: string
+  targetTs: string
+}
+export function timelineLinks(state: State): TimelineLink[] {
+  // per-idea sorted change timestamps (plant/edit on the idea, comments on it) —
+  // any of these advance the idea's version.
+  const byIdea = new Map<string, string[]>()
+  const pushTs = (id: string, ts: string) => { const a = byIdea.get(id) ?? []; a.push(ts); byIdea.set(id, a) }
+  for (const ev of state.events) {
+    if (ev.type === 'spud.plant' || ev.type === 'spud.edit') pushTs(ev.subject, ev.ts)
+    else if (ev.type === 'comment.add') { const s = asString((ev.data ?? {}).spud); if (s) pushTs(s, ev.ts) }
+  }
+  for (const a of byIdea.values()) a.sort()
+
+  // earliest moment each ordered (from → to) reference was introduced
+  const first = new Map<string, { from: string; to: string; atTs: string }>()
+  const note = (from: string, to: string, atTs: string) => {
+    if (from === to || !state.spuds[to] || !state.spuds[from]) return
+    const key = from + '|' + to
+    const cur = first.get(key)
+    if (!cur || atTs < cur.atTs) first.set(key, { from, to, atTs })
+  }
+  const bodyEvents = state.events
+    .filter((e) => e.type === 'spud.plant' || e.type === 'spud.edit')
+    .slice()
+    .sort((a, b) => (a.ts < b.ts ? -1 : 1))
+  for (const e of bodyEvents) {
+    const body = asString((e.data ?? {}).body)
+    if (!body) continue
+    for (const to of mentionedSpudIds(body)) note(e.subject, to, e.ts)
+  }
+  for (const c of Object.values(state.comments)) {
+    if (c.deleted) continue
+    for (const to of mentionedSpudIds(c.body)) note(c.spud, to, c.createdAt)
+  }
+
+  const out: TimelineLink[] = []
+  for (const { from, to, atTs } of first.values()) {
+    const times = byIdea.get(to) ?? []
+    let targetTs = state.spuds[to]!.createdAt
+    for (const ts of times) { if (ts <= atTs) targetTs = ts; else break }
+    out.push({ from, to, atTs, targetTs })
+  }
+  return out
 }
 
 /** Directed edges (from → to) for the network view, from description @mentions. */

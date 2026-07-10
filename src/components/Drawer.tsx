@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { useUi } from './ui'
 import { backlinks, outgoingMentions, type Revision, type SpudRecord } from '../lib/reducer'
@@ -112,6 +112,9 @@ function Description({ spud }: { spud: SpudRecord }) {
 function Title({ spud }: { spud: SpudRecord }) {
   const { dispatch } = useStore()
   const ref = useRef<HTMLTextAreaElement>(null)
+  const grow = () => { const t = ref.current; if (!t) return; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }
+  // size to fit on open / when the idea changes, not just on keystroke
+  useLayoutEffect(grow, [spud.id, spud.title])
   const commit = (next: string) => {
     const clean = next.trim()
     if (clean && clean !== spud.title) void dispatch({ type: 'spud.edit', subject: spud.id, data: { title: clean } })
@@ -122,10 +125,10 @@ function Title({ spud }: { spud: SpudRecord }) {
       defaultValue={spud.title}
       key={spud.id + spud.title}
       rows={1}
-      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px' }}
+      onInput={grow}
       onBlur={(e) => commit(e.target.value)}
       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
-      className="w-full resize-none bg-transparent font-serif text-2xl font-semibold leading-tight outline-none"
+      className="w-full resize-none overflow-hidden bg-transparent text-2xl font-semibold leading-tight outline-none"
       style={{ fontFamily: 'Georgia, serif', opacity: spud.archived ? 0.6 : 1 }}
     />
   )

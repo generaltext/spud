@@ -3,22 +3,21 @@ import { NavLink, Outlet, useSearchParams } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import { allTags } from '../lib/reducer'
 import { tagHex } from '../lib/model'
-import { newId } from '../lib/ids'
 import { UiContext, type Ui } from './ui'
 import { Drawer } from './Drawer'
-import { Icon, PotatoMark, type IconName } from './Icon'
+import { OmniInput } from './OmniInput'
+import { Icon, PotatoMark } from './Icon'
 
-const VIEWS: { to: string; label: string; icon: IconName }[] = [
-  { to: '/timeline', label: 'Timeline', icon: 'History' },
-  { to: '/network', label: 'Network', icon: 'Share2' },
-  { to: '/list', label: 'List', icon: 'Table2' },
+const VIEWS: { to: string; label: string }[] = [
+  { to: '/timeline', label: 'Timeline' },
+  { to: '/network', label: 'Network' },
+  { to: '/list', label: 'List' },
 ]
 
 export function Layout() {
-  const { connected, me, state, config, dispatch } = useStore()
+  const { connected, me, state, config } = useStore()
   const [params, setParams] = useSearchParams()
   const [activeTags, setActiveTags] = useState<string[]>([])
-  const [title, setTitle] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const selectedId = params.get('i')
@@ -47,15 +46,6 @@ export function Layout() {
 
   const tags = allTags(state)
 
-  const plant = () => {
-    const clean = title.trim()
-    if (!clean) return
-    const id = newId('spd')
-    void dispatch({ type: 'spud.plant', subject: id, data: { title: clean } })
-    setTitle('')
-    ui.openIdea(id)
-  }
-
   return (
     <UiContext.Provider value={ui}>
       <div className="flex h-full flex-col" style={{ background: 'var(--bg)' }}>
@@ -71,38 +61,12 @@ export function Layout() {
             </span>
           </div>
 
-          <form
-            className="flex min-w-[240px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-1.5 md:max-w-[380px]"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}
-            onSubmit={(e) => { e.preventDefault(); plant() }}
-          >
-            <Icon name="Plus" size={15} style={{ color: 'var(--muted)' }} />
-            <input
-              ref={inputRef}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="New idea…"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-              aria-label="New idea"
-            />
-            {title.trim() ? (
-              <button type="submit" className="rounded-md px-2.5 py-1 text-xs font-semibold" style={{ background: 'var(--accent)', color: '#fff' }}>Add</button>
-            ) : (
-              <kbd
-                className="rounded border px-1.5 py-0.5 text-[11px] font-medium leading-none"
-                style={{ borderColor: 'var(--border)', background: 'var(--hover)', color: 'var(--muted)' }}
-                title="Press n to start a new idea"
-              >
-                n
-              </kbd>
-            )}
-          </form>
+          <OmniInput inputRef={inputRef} />
 
           <nav className="ml-auto flex items-center gap-1 rounded-lg border p-0.5" style={{ borderColor: 'var(--border)' }}>
             {VIEWS.map((v) => (
-              <NavLink key={v.to} to={v.to + (selectedId ? `?i=${selectedId}` : '')} className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium" style={({ isActive }) => ({ background: isActive ? 'var(--accent-soft)' : 'transparent', color: isActive ? 'var(--accent)' : 'var(--muted)' })}>
-                <Icon name={v.icon} size={15} />
-                <span className="hidden sm:inline">{v.label}</span>
+              <NavLink key={v.to} to={v.to + (selectedId ? `?i=${selectedId}` : '')} className="rounded-md px-3 py-1.5 text-sm font-medium" style={({ isActive }) => ({ background: isActive ? 'var(--accent-soft)' : 'transparent', color: isActive ? 'var(--accent)' : 'var(--muted)' })}>
+                {v.label}
               </NavLink>
             ))}
           </nav>
