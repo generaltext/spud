@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light dark;
+  --mono: ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
+}
+
+html, body, #root { height: 100%; }
+
+/* Tailwind v4 preflight defaults borders to currentColor; default to the token. */
+*, ::before, ::after { border-color: var(--border); }
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Warm neutrals + an earthy ochre accent. Follows the shell theme when embedded
+   (html.dark + injected tokens); falls back to prefers-color-scheme standalone. */
+:root {
+  --bg: #f7f6f3;
+  --panel: #ffffff;
+  --fg: #1c1a17;
+  --muted: #6d6a61;
+  --border: #e7e5df;
+  --hover: #f1efea;
+  --accent: #bf7a24;
+  --accent-soft: #f4e7d3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191a17;
+    --panel: #212320;
+    --fg: #eeede8;
+    --muted: #9c9a90;
+    --border: #33342f;
+    --hover: #2a2c27;
+    --accent: #e0994a;
+    --accent-soft: #3a2c15;
+  }
+}
+html.dark {
+  --bg: #191a17;
+  --panel: #212320;
+  --fg: #eeede8;
+  --muted: #9c9a90;
+  --border: #33342f;
+  --hover: #2a2c27;
+  --accent: #e0994a;
+  --accent-soft: #3a2c15;
+}
+
+/* ── mention chips (rendered + editor) ─────────────────────────────────────── */
+.mention {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 4px;
+  padding: 0 3px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mention:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* contenteditable placeholder */
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── timeline view ─────────────────────────────────────────────────────────── */
+.tl-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: none; }
+.tl-tick {
+  position: absolute; transform: translateX(-50%); top: 2px;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tl-lane { display: grid; align-items: center; cursor: pointer; }
+.tl-lane-m { cursor: pointer; }
+.tl-lane:hover, .tl-lane-m:hover { background: var(--hover); }
+/* title pins to the left as the timeline scrolls horizontally */
+.tl-title {
+  position: sticky; left: 0; z-index: 3;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 0 12px 0 10px; font-size: 13px; background: var(--bg);
+}
+.tl-lane:hover .tl-title, .tl-lane-m:hover .tl-title { background: var(--hover); }
+.tl-track { position: relative; height: 100%; }
+.tl-grid { position: absolute; top: 3px; bottom: 3px; width: 1px; background: var(--border); opacity: 0.4; }
+.tl-bar {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  height: 3px; border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+/* version-change dots: major = large filled, minor = small filled, patch = outline */
+.tl-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; z-index: 2; }
+.tl-dot.plant { width: 8px; height: 8px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+.tl-dot.minor { width: 7px; height: 7px; background: var(--accent); }
+.tl-dot.major { width: 12px; height: 12px; background: var(--accent); box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--accent) 22%, transparent); }
+.tl-dot.comment { width: 7px; height: 7px; background: var(--panel); border: 1.5px solid var(--accent); }
+.tl-ver {
+  position: absolute; top: 50%; transform: translate(8px, -50%);
+  font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; z-index: 2;
+}
+
+/* thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
