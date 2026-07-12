@@ -1,4 +1,4 @@
-// SPUD has one entity — the idea. Connections are not their own records: they
+// Spud has one entity — the idea. Connections are not their own records: they
 // emerge from @mentions between ideas (see mentions.ts + reducer selectors). This
 // file holds the shared tag vocabulary and the garden config in v0/config.json.
 

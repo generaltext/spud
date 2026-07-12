@@ -10,7 +10,7 @@ function Splash() {
   return (
     <div className="flex h-full items-center justify-center" style={{ background: 'var(--bg)', color: 'var(--muted)' }}>
       <div className="flex items-center gap-2 text-sm">
-        <PotatoMark size={18} /> Loading SPUD…
+        <PotatoMark size={18} /> Loading Spud…
       </div>
     </div>
   )

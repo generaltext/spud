@@ -34,8 +34,10 @@ export async function seedDemo(dispatch: (d: Draft[]) => Promise<void>): Promise
     { type: 'comment.add', subject: newId('cmt'), data: { spud: semver, body: `This is what makes ${mentionToken(mapview, 'the map view')} legible.` } },
     { type: 'comment.add', subject: newId('cmt'), data: { spud: offline, body: 'Local-first via y-indexeddb gets us most of the way.' } },
 
-    // a deliberate major new approach on one idea
+    // deliberate major re-approaches on one idea → v3 (shows nested rings in Network)
     { type: 'spud.edit', subject: studios, data: { major: true, note: 'Reframed around conversations after the discussion.', body: `A conversation-first CRM for small studios. Capture who you talked to and what was said; the pipeline falls out of that. Syncs offline like ${mentionToken(offline, 'the notebooks idea')}.` } },
+    { type: 'spud.edit', subject: studios, data: { major: true, note: 'Pivot: lead with a shared client timeline, not contact records.', body: `A shared client timeline for small studios. One thread per client of calls, notes, and decisions, that the whole team can see. Syncs offline like ${mentionToken(offline, 'the notebooks idea')}.` } },
+    { type: 'spud.edit', subject: studios, data: { major: true, note: 'Reframed again around handoffs between designers and PMs.', body: `A client memory for studios: every conversation and decision on one timeline, so a handoff between designers or PMs loses nothing. Not a pipeline, not a task tracker.` } },
 
     // tags (some ideas carry several colors)
     { type: 'tag.add', subject: studios, data: { label: 'product' } },

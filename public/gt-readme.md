@@ -1,4 +1,4 @@
-# SPUD
+# Spud
 
 *See what grows.*
 
@@ -32,7 +32,7 @@ discussion from another idea.
 
 ## How your data is stored
 
-SPUD is **event-sourced**: instead of overwriting records, it appends one JSON line
+Spud is **event-sourced**: instead of overwriting records, it appends one JSON line
 per change to a monthly log and rebuilds the current state by replaying it. Clean
 merges when your team edits at once, a full version history for free, and a dataset
 any other tool (or your AI) can read.
@@ -43,4 +43,4 @@ Files it writes, under this app's `data/` folder:
 - `v0/config.json` your tag palette and settings.
 
 Because the store is plain JSONL, you can `grep` it, diff it in git, or hand it to
-an LLM without SPUD in the loop. The file is the contract.
+an LLM without Spud in the loop. The file is the contract.

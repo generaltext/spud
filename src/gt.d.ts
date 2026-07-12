@@ -1,7 +1,7 @@
 // window.gt is injected by General Text at runtime (dev: from the public runtime
 // URL via the vite plugin; prod: by the platform). This is a pragmatic subset of
 // the contract documented at https://www.generaltext.org/llms.txt — the surfaces
-// SPUD actually uses.
+// Spud actually uses.
 
 export interface GtUser {
   id: string

@@ -4,7 +4,7 @@
 // numbered discussion comment (`cmt_…`). Mentions are how connections form: an
 // idea whose description says "inspired by @Other idea" is linked to it, and the
 // network is the graph of those mentions. Everything stays greppable and readable
-// outside SPUD.
+// outside Spud.
 
 export interface TextSegment {
   type: 'text'

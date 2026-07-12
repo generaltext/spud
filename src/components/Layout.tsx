@@ -56,7 +56,7 @@ export function Layout() {
               <PotatoMark size={19} />
             </span>
             <span className="flex flex-col leading-none">
-              <span className="text-[17px] font-semibold tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>SPUD</span>
+              <span className="text-[17px] font-semibold tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>Spud</span>
               <span className="mt-0.5 text-[11px]" style={{ color: 'var(--muted)' }}>see what grows</span>
             </span>
           </div>

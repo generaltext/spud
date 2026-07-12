@@ -158,6 +158,17 @@ export function NetworkView() {
         }
         ctx.fill()
         ctx.lineWidth = hov ? 1.9 : 1.2; ctx.strokeStyle = rgba(mix, (q ? 0.5 : 0.92) * a); ctx.stroke()
+
+        // concentric inner rings — one per major version beyond the first (v3 → 2
+        // inner rings inside the outer edge), capped so it never gets too dense.
+        const innerRings = Math.min(4, Math.max(0, s.version.major - 1))
+        for (let k = 1; k <= innerRings; k++) {
+          const rr = r * (0.4 + 0.5 * (k / (innerRings + 0.5)))
+          ctx.beginPath(); ctx.arc(sx, sy, rr, 0, 6.29)
+          ctx.strokeStyle = rgba(mix, (q ? 0.34 : 0.6) * a); ctx.lineWidth = 1
+          ctx.stroke()
+        }
+
         ctx.beginPath(); ctx.arc(sx, sy, Math.max(2, r * 0.16), 0, 6.29); ctx.fillStyle = rgba(mix, (q ? 0.55 : 1) * a); ctx.fill()
 
         const showL = hov || (r > 20 && matches(s))
