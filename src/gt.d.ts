@@ -22,6 +22,8 @@ export interface GtRuntime {
   mode: GtMode
   workspaceId: string
   connected: boolean
+  /** The shell's active theme (runtime 1.8+). Absent on older runtimes/standalone. */
+  theme?: { mode: 'light' | 'dark'; vars?: Record<string, string> }
 
   atLeast(version: string): boolean
   require(version: string): void

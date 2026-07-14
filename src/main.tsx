@@ -3,6 +3,7 @@ import { HashRouter } from 'react-router-dom'
 import { StoreProvider } from './lib/store'
 import { App } from './App'
 import { MissingRuntime } from './components/MissingRuntime'
+import { initTheme } from './lib/theme'
 import './global.css'
 
 // The platform injects `window.gt` (a classic script) before this deferred module
@@ -40,8 +41,20 @@ function bootApp() {
 }
 
 function renderMissing() {
-  root.render(<MissingRuntime onTryDemo={() => loadRuntime().then(bootApp).catch(renderMissing)} />)
+  root.render(
+    <MissingRuntime
+      onTryDemo={() =>
+        loadRuntime()
+          .then(() => {
+            initTheme() // re-resolve once the runtime is present
+            bootApp()
+          })
+          .catch(renderMissing)
+      }
+    />,
+  )
 }
 
+initTheme()
 if (HAS_REAL_RUNTIME) bootApp()
 else renderMissing()

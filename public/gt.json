@@ -1,7 +1,7 @@
 {
   "name": "spud",
   "displayName": "Spud",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "gtApi": "^1.0",
   "blurb": "See what grows: capture ideas, connect them with @mentions, and watch the good ones mature.",
   "color": "amber",

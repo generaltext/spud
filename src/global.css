@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --mono: ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
 }
 
@@ -18,8 +18,9 @@ body {
   color: var(--fg);
 }
 
-/* Warm neutrals + an earthy ochre accent. Follows the shell theme when embedded
-   (html.dark + injected tokens); falls back to prefers-color-scheme standalone. */
+/* Warm neutrals + an earthy ochre accent. Light default; dark under the shell's
+   `dark` class on <html> (lib/theme.ts mirrors gt.theme; standalone/dev falls back
+   to the OS via the same class). CSS keys off the class so the shell wins. */
 :root {
   --bg: #f7f6f3;
   --panel: #ffffff;
@@ -30,19 +31,8 @@ body {
   --accent: #bf7a24;
   --accent-soft: #f4e7d3;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #191a17;
-    --panel: #212320;
-    --fg: #eeede8;
-    --muted: #9c9a90;
-    --border: #33342f;
-    --hover: #2a2c27;
-    --accent: #e0994a;
-    --accent-soft: #3a2c15;
-  }
-}
 html.dark {
+  color-scheme: dark;
   --bg: #191a17;
   --panel: #212320;
   --fg: #eeede8;
