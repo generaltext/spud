@@ -16,8 +16,6 @@ import {
   Table2,
   Tag,
   Trash2,
-  Wifi,
-  WifiOff,
   X,
   type LucideProps,
 } from 'lucide-react'
@@ -40,8 +38,6 @@ const REGISTRY = {
   Table2,
   Tag,
   Trash2,
-  Wifi,
-  WifiOff,
   X,
 }
 

@@ -4,21 +4,11 @@ import { Layout } from './components/Layout'
 import { TimelineView } from './views/TimelineView'
 import { NetworkView } from './views/NetworkView'
 import { ListView } from './views/ListView'
-import { PotatoMark } from './components/Icon'
-
-function Splash() {
-  return (
-    <div className="flex h-full items-center justify-center" style={{ background: 'var(--bg)', color: 'var(--muted)' }}>
-      <div className="flex items-center gap-2 text-sm">
-        <PotatoMark size={18} /> Loading Spud…
-      </div>
-    </div>
-  )
-}
+import { AppSkeleton } from './components/Skeleton'
 
 export function App() {
   const { ready } = useStore()
-  if (!ready) return <Splash />
+  if (!ready) return <AppSkeleton />
 
   return (
     <Routes>

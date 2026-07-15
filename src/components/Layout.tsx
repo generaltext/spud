@@ -6,7 +6,7 @@ import { tagHex } from '../lib/model'
 import { UiContext, type Ui } from './ui'
 import { Drawer } from './Drawer'
 import { OmniInput } from './OmniInput'
-import { Icon, PotatoMark } from './Icon'
+import { PotatoMark } from './Icon'
 
 const VIEWS: { to: string; label: string }[] = [
   { to: '/timeline', label: 'Timeline' },
@@ -15,7 +15,7 @@ const VIEWS: { to: string; label: string }[] = [
 ]
 
 export function Layout() {
-  const { connected, me, state, config } = useStore()
+  const { connected, state, config } = useStore()
   const [params, setParams] = useSearchParams()
   const [activeTags, setActiveTags] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -71,10 +71,11 @@ export function Layout() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--muted)' }}>
-            <Icon name={connected ? 'Wifi' : 'WifiOff'} size={13} />
-            {me && <span className="hidden truncate md:inline">{me.name}</span>}
-          </div>
+          <span
+            title={connected ? 'Synced' : 'Offline'}
+            className="inline-block h-2 w-2 shrink-0 rounded-full"
+            style={{ background: connected ? '#16a34a' : 'var(--muted)' }}
+          />
         </header>
 
         {/* tag filter strip */}
