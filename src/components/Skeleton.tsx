@@ -29,7 +29,7 @@ export function AppSkeleton() {
       </header>
 
       <main className="relative min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto max-w-[1100px] px-4 py-4 sm:px-6">
+        <div className="px-4 py-4">
           {/* axis strip */}
           <div className="mb-2 flex items-center gap-10 pl-[200px]">
             {Array.from({ length: 5 }).map((_, i) => (

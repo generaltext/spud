@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { useUi } from '../components/ui'
 import { allSpuds, eventsForSpud, timelineLinks, type IdeaEvent } from '../lib/reducer'
@@ -32,18 +32,22 @@ function EventDot({ e, x }: { e: IdeaEvent; x: number }) {
 export function TimelineView() {
   const { state, config } = useStore()
   const { openIdea, activeTags } = useUi()
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const roRef = useRef<ResizeObserver | null>(null)
   const [vw, setVw] = useState(0)
   const [hovered, setHovered] = useState<string | null>(null)
 
-  useLayoutEffect(() => {
-    const el = scrollRef.current
+  // Callback ref (not a mount-effect): the scroll element is absent while the
+  // empty state shows, so it only appears once ideas load. A callback ref
+  // re-runs on that mount, whereas a `[]`-deps effect would have already fired
+  // against nothing and left vw stuck at 0 (→ the fallback width).
+  const setScrollRef = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect()
     if (!el) return
     const measure = () => setVw(el.clientWidth)
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
-    return () => ro.disconnect()
+    roRef.current = ro
   }, [])
 
   const spuds = useMemo(() => {
@@ -71,12 +75,28 @@ export function TimelineView() {
   const xPx = (ts: string) => trackStart + (pct(ts) / 100) * trackW
   const trackCenterY = (i: number) => (isMobile ? i * laneH + M_TITLE_H + M_TRACK_H / 2 : i * laneH + ROW_H / 2)
 
+  // Gridlines at meaningful time-ago milestones rather than even fractions: weeks
+  // only for very recent spans, then months, then the recent year in quarters
+  // (3m/6m/9m/1y) plus coarser year lines (2y, 3y…) going back. Only marks that
+  // fall within the visible range are drawn.
   const ticks = useMemo(() => {
-    const out: { x: number; label: string }[] = []
-    for (let f = 0; f <= 1.0001; f += 0.25) {
-      const t = minTs + f * (now - minTs)
-      const daysAgo = Math.round((Date.now() - t) / 86400000)
-      out.push({ x: trackStart + f * trackW, label: daysAgo <= 0 ? 'now' : daysAgo < 14 ? `${daysAgo}d` : `${Math.round(daysAgo / 7)}w` })
+    const DAY = 86400000, WK = 7 * DAY, MO = 30.44 * DAY, YR = 365.25 * DAY
+    const nowT = Date.now()
+    const span = now - minTs
+    const xOf = (t: number) => trackStart + Math.max(0, Math.min(1, (t - minTs) / (now - minTs))) * trackW
+    const out: { x: number; label: string }[] = [{ x: xOf(nowT), label: 'now' }]
+    const add = (age: number, label: string) => {
+      const t = nowT - age
+      if (t >= minTs && t <= now) out.push({ x: xOf(t), label })
+    }
+    if (span <= 45 * DAY) {
+      for (let w = 1; w * WK <= span; w++) add(w * WK, `${w}w`)
+    } else if (span <= 5 * MO) {
+      for (let m = 1; m * MO <= span; m++) add(m * MO, `${m}m`)
+    } else {
+      if (span <= 3 * YR) for (const m of [3, 6, 9]) add(m * MO, `${m}m`)
+      const yStep = [1, 2, 5, 10, 20, 50].find((s) => span / YR / s <= 8) ?? 100
+      for (let y = 1; y * YR <= span + YR * 0.1; y += yStep) add(y * YR, `${y}y`)
     }
     return out
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,8 +120,8 @@ export function TimelineView() {
   const lanesH = spuds.length * laneH
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-4 sm:px-6">
-      <div ref={scrollRef} className="tl-scroll">
+    <div className="px-4 py-4">
+      <div ref={setScrollRef} className="tl-scroll">
         <div style={{ width: contentW, position: 'relative' }}>
           {/* axis */}
           <div style={{ position: 'relative', height: AXIS_H }}>
