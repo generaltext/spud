@@ -32,20 +32,27 @@ export function appendLine(current: string, line: string): string {
 }
 
 /**
- * Fold the not-yet-consumed tail of a shard into state. Returns the new
- * consumed length (always at a newline boundary). Only complete lines are
- * applied, so a half-synced trailing write is left for the next change.
+ * Fold a shard's content into state, applying complete lines from `start`
+ * onward. Returns the char length actually consumed (always at a newline
+ * boundary) so the caller can remember exactly the prefix it folded.
+ *
+ * `start` MUST sit on a line boundary the caller has verified is still intact.
+ * It is NOT safe to persist as a cross-session cursor: the shard is a CRDT
+ * Y.Text, so a merge with a concurrent writer can insert content *before* a
+ * previously-recorded offset, which would make a naive tail-slice skip real
+ * events. The store only trusts `start` when the new content still begins with
+ * the exact prefix it last folded; otherwise it passes 0 and refolds whole.
+ * A full refold is always correct because applyEvent dedupes by event id.
  */
-export function foldTail(state: State, content: string, prevLen: number): number {
-  let start = prevLen
-  if (content.length < start) start = 0 // shard unexpectedly shrank → refold (dedupe keeps it safe)
-  const slice = content.slice(start)
+export function foldFrom(state: State, content: string, start: number): number {
+  const from = start > 0 && start <= content.length ? start : 0
+  const slice = content.slice(from)
   const lastNl = slice.lastIndexOf('\n')
-  if (lastNl === -1) return start // no complete new line yet
+  if (lastNl === -1) return from // no complete new line yet
   const complete = slice.slice(0, lastNl)
   for (const line of complete.split('\n')) {
     const ev = parseEvent(line)
     if (ev) applyEvent(state, ev)
   }
-  return start + lastNl + 1
+  return from + lastNl + 1
 }

@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { type Actor, type Draft, type SpudEvent, serializeEvent } from './events'
 import { applyEvent, emptyState, type State } from './reducer'
-import { appendLine, CONFIG_PATH, currentShardPath, foldTail, isShardPath } from './log'
+import { appendLine, CONFIG_PATH, currentShardPath, foldFrom, isShardPath } from './log'
 import { loadCache, saveCache } from './cache'
 import { DEFAULT_CONFIG, type Config } from './model'
 import { newId, ulid } from './ids'
@@ -46,7 +46,13 @@ async function resolveMe(): Promise<Actor> {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef<State>(emptyState())
-  const consumedRef = useRef<Record<string, number>>({})
+  // Per-shard: the exact newline-terminated prefix we have already folded, kept
+  // in memory only. A fold takes the fast tail path when new content still
+  // begins with this prefix, and otherwise refolds from 0 (dedupe-safe). This
+  // is deliberately NOT persisted — a char offset saved across sessions is not
+  // a valid cursor over a CRDT shard that can be reordered by a concurrent
+  // writer while the tab is closed. See foldFrom in log.ts.
+  const foldedRef = useRef<Map<string, string>>(new Map())
   const meRef = useRef<Actor | null>(null)
   const workspaceRef = useRef<string>('local')
   const subscribed = useRef<Set<string>>(new Set())
@@ -73,7 +79,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   function schedulePersist() {
     if (persistTimer.current) clearTimeout(persistTimer.current)
     persistTimer.current = setTimeout(() => {
-      void saveCache(workspaceRef.current, stateRef.current, consumedRef.current)
+      void saveCache(workspaceRef.current, stateRef.current)
     }, 1000)
   }
 
@@ -81,8 +87,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (subscribed.current.has(path)) return
     subscribed.current.add(path)
     const stop = window.gt.watch(path, (content) => {
-      const prev = consumedRef.current[path] ?? 0
-      consumedRef.current[path] = foldTail(stateRef.current, content, prev)
+      // Trust the remembered prefix only if the new content still starts with
+      // it (a pure extension); otherwise a merge reordered the shard, so refold
+      // the whole thing from 0. applyEvent dedupes by id, so this is always safe.
+      const prev = foldedRef.current.get(path) ?? ''
+      const start = content.startsWith(prev) ? prev.length : 0
+      const consumed = foldFrom(stateRef.current, content, start)
+      foldedRef.current.set(path, content.slice(0, consumed))
       bump()
       schedulePersist()
     })
@@ -103,10 +114,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setMe(actor)
       setConnected(window.gt.connected)
 
+      // Load the cached projection for an instant first paint. We deliberately
+      // do NOT seed a fold cursor from it: foldedRef starts empty, so the first
+      // watch fire per shard refolds the whole content and reconciles anything
+      // the cache missed (dedupe by event id makes that a no-op for the rest).
       const cached = await loadCache(workspaceRef.current)
       if (cached && !disposed) {
         stateRef.current = cached.state
-        consumedRef.current = cached.consumed
       }
 
       // Config: read, or seed the default once.

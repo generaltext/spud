@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom'
 import { useStore } from '../lib/store'
 import { allTags } from '../lib/reducer'
-import { tagHex } from '../lib/model'
 import { UiContext, type Ui } from './ui'
 import { Drawer } from './Drawer'
 import { OmniInput } from './OmniInput'
+import { useTagHex } from './TagChips'
 import { PotatoMark } from './Icon'
 
 const VIEWS: { to: string; label: string }[] = [
@@ -15,7 +15,8 @@ const VIEWS: { to: string; label: string }[] = [
 ]
 
 export function Layout() {
-  const { connected, state, config } = useStore()
+  const { connected, state } = useStore()
+  const hexOf = useTagHex()
   const [params, setParams] = useSearchParams()
   const [activeTags, setActiveTags] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -84,7 +85,7 @@ export function Layout() {
             <span className="text-xs" style={{ color: 'var(--muted)' }}>Filter</span>
             {tags.map((t) => {
               const on = activeTags.includes(t.label)
-              const c = tagHex(t.label, config)
+              const c = hexOf(t.label)
               return (
                 <button
                   key={t.label}

@@ -11,7 +11,8 @@ import {
   versionString,
   type State,
 } from './reducer'
-import type { SpudEvent } from './events'
+import { serializeEvent, type SpudEvent } from './events'
+import { foldFrom } from './log'
 import { mentionToken, mentionedSpudIds, parseBody } from './mentions'
 
 let seq = 0
@@ -125,6 +126,68 @@ describe('mention token round-trip', () => {
     const body = `a ${mentionToken('spd_x', 'X')} b ${mentionToken('cmt_9', '#3')}`
     expect(mentionedSpudIds(body)).toEqual(['spd_x'])
     expect(parseBody(body).filter((s) => s.type === 'mention')).toHaveLength(2)
+  })
+})
+
+describe('shard fold cursor', () => {
+  const line = (e: SpudEvent) => serializeEvent(e) + '\n'
+
+  it('folds only the appended tail when content is a pure extension', () => {
+    const a = ev('spud.plant', 'spd_a', { title: 'A' })
+    const b = ev('spud.plant', 'spd_b', { title: 'B' })
+    const s = emptyState()
+
+    const first = line(a)
+    const consumed = foldFrom(s, first, 0)
+    expect(consumed).toBe(first.length)
+    expect(Object.keys(s.spuds)).toEqual(['spd_a'])
+
+    // append b; caller resumes from the remembered prefix length
+    const full = first + line(b)
+    const consumed2 = foldFrom(s, full, consumed)
+    expect(consumed2).toBe(full.length)
+    expect(Object.keys(s.spuds).sort()).toEqual(['spd_a', 'spd_b'])
+  })
+
+  it('leaves a half-synced trailing line for the next fold', () => {
+    const a = ev('spud.plant', 'spd_a', { title: 'A' })
+    const b = ev('spud.plant', 'spd_b', { title: 'B' })
+    const s = emptyState()
+    const partial = line(a) + serializeEvent(b) // no trailing newline yet
+    const consumed = foldFrom(s, partial, 0)
+    expect(consumed).toBe(line(a).length) // only the complete line
+    expect(Object.keys(s.spuds)).toEqual(['spd_a'])
+    // the newline arrives → b now folds
+    foldFrom(s, partial + '\n', consumed)
+    expect(Object.keys(s.spuds).sort()).toEqual(['spd_a', 'spd_b'])
+  })
+
+  it('a full refold picks up events a CRDT merge inserted before the old offset', () => {
+    // Regression: a concurrent writer\'s events can land *before* a previously
+    // recorded char offset. A naive tail-slice from that offset skips them; the
+    // store guards this by only trusting the offset when the content still
+    // starts with the exact prefix it folded, else refolding from 0.
+    const local = ev('spud.plant', 'spd_local', { title: 'Local' })
+    const remote = ev('spud.plant', 'spd_remote', { title: 'Remote' })
+    const s = emptyState()
+
+    // we fold our own line and remember the prefix + offset
+    const mine = line(local)
+    const offset = foldFrom(s, mine, 0)
+    expect(Object.keys(s.spuds)).toEqual(['spd_local'])
+
+    // merge reorders: the remote event is now ordered *before* ours
+    const merged = line(remote) + line(local)
+    // the store\'s guard: mine is no longer a prefix of merged → refold from 0
+    expect(merged.startsWith(mine)).toBe(false)
+    foldFrom(s, merged, 0)
+    expect(Object.keys(s.spuds).sort()).toEqual(['spd_local', 'spd_remote'])
+
+    // and a naive tail-slice from the stale offset would indeed have missed it
+    const naive = emptyState()
+    applyEvent(naive, local)
+    foldFrom(naive, merged, offset)
+    expect(naive.spuds['spd_remote']).toBeUndefined()
   })
 })
 

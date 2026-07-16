@@ -339,6 +339,27 @@ export function mentionEdges(state: State): { from: string; to: string }[] {
   return out
 }
 
+// Tags in first-seen order (the order their `tag.add` events appear in the log),
+// so color assignment is stable: a new tag takes the next hue and never reshuffles
+// the ones before it. Any tag present but somehow without a tag.add event is
+// appended after, for safety.
+export function orderedTags(state: State): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const ev of state.events) {
+    if (ev.type !== 'tag.add') continue
+    const label = String((ev.data as { label?: unknown } | undefined)?.label ?? '')
+    if (label && !seen.has(label)) {
+      seen.add(label)
+      out.push(label)
+    }
+  }
+  for (const s of Object.values(state.spuds)) {
+    for (const t of s.tags) if (!seen.has(t)) { seen.add(t); out.push(t) }
+  }
+  return out
+}
+
 export function allTags(state: State): { label: string; count: number }[] {
   const counts = new Map<string, number>()
   for (const s of Object.values(state.spuds)) {

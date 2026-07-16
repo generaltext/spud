@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
-import { allTags } from '../lib/reducer'
-import { tagHex } from '../lib/model'
+import { allTags, orderedTags } from '../lib/reducer'
+import { tagHexResolver } from '../lib/model'
 import { Icon } from './Icon'
+
+// Resolve a tag's color from the order-based assignment. Memoized on the log
+// length + config so the map is built once per change, not per label.
+export function useTagHex(): (label: string) => string {
+  const { state, config } = useStore()
+  return useMemo(() => tagHexResolver(orderedTags(state), config), [state.events.length, config])
+}
 
 // A tag as a colored pill.
 export function TagChip({
@@ -14,8 +21,7 @@ export function TagChip({
   onRemove?: () => void
   onClick?: () => void
 }) {
-  const { config } = useStore()
-  const c = tagHex(label, config)
+  const c = useTagHex()(label)
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs"
@@ -35,12 +41,12 @@ export function TagChip({
 
 // A compact row of colored dots — one per tag — for dense table/timeline rows.
 export function TagDots({ tags, size = 8 }: { tags: string[]; size?: number }) {
-  const { config } = useStore()
+  const hexOf = useTagHex()
   if (tags.length === 0) return null
   return (
     <span className="inline-flex items-center gap-1" title={tags.join(', ')}>
       {tags.map((t) => (
-        <span key={t} style={{ width: size, height: size, borderRadius: 999, background: tagHex(t, config), display: 'inline-block' }} />
+        <span key={t} style={{ width: size, height: size, borderRadius: 999, background: hexOf(t), display: 'inline-block' }} />
       ))}
     </span>
   )

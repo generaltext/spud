@@ -8,13 +8,16 @@ import type { SpudEvent } from './events'
 
 const DB_NAME = 'spud'
 const STORE = 'projection'
-const CACHE_VERSION = 1
+// v2 dropped the persisted `consumed` cursor: a saved char offset is not a
+// valid resume point over a CRDT shard (a concurrent write can reorder content
+// before the offset, silently skipping events). The fold cursor now lives in
+// memory and is revalidated each session. Bumping the version discards any v1
+// cache that may hold state built by the old, offset-skipping fold.
+const CACHE_VERSION = 2
 
 export interface CachedProjection {
   version: number
   workspaceId: string
-  /** shard path → consumed char length */
-  consumed: Record<string, number>
   state: SerializedState
 }
 
@@ -59,9 +62,7 @@ function cacheKey(workspaceId: string): string {
   return `proj:${workspaceId}`
 }
 
-export async function loadCache(
-  workspaceId: string,
-): Promise<{ state: State; consumed: Record<string, number> } | null> {
+export async function loadCache(workspaceId: string): Promise<{ state: State } | null> {
   try {
     const db = await open()
     const cached = await idbGet<CachedProjection>(db, cacheKey(workspaceId))
@@ -72,23 +73,18 @@ export async function loadCache(
     s.events = cached.state.events
     s.applied = new Set(cached.state.applied)
     s.commentSeq = cached.state.commentSeq ?? 0
-    return { state: s, consumed: cached.consumed }
+    return { state: s }
   } catch {
     return null // cache is best-effort; a miss just means a full fold
   }
 }
 
-export async function saveCache(
-  workspaceId: string,
-  state: State,
-  consumed: Record<string, number>,
-): Promise<void> {
+export async function saveCache(workspaceId: string, state: State): Promise<void> {
   try {
     const db = await open()
     const payload: CachedProjection = {
       version: CACHE_VERSION,
       workspaceId,
-      consumed,
       state: {
         spuds: state.spuds,
         comments: state.comments,

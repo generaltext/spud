@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from '../lib/store'
 import { useUi } from '../components/ui'
-import { mentionEdges, type SpudRecord, type State } from '../lib/reducer'
+import { mentionEdges, orderedTags, type SpudRecord, type State } from '../lib/reducer'
 import { activityScore, isDormant } from '../lib/maturity'
-import { tagHex, type Config } from '../lib/model'
+import { tagHexResolver, type Config } from '../lib/model'
 
 // Ideas as a network. Edges are the @mentions between descriptions, so the graph
 // literally shows how ideas reference each other. A node's size grows with
@@ -94,11 +94,18 @@ export function NetworkView() {
     canvas.addEventListener('mousemove', onMove); canvas.addEventListener('mousedown', onDown); window.addEventListener('mouseup', onUp); canvas.addEventListener('wheel', onWheel, { passive: false }); canvas.addEventListener('mouseleave', onLeave)
 
     const t0 = performance.now(); let raf = 0; const rm = reduceMotion()
+    // Order-based tag colors, rebuilt only when the log grows or config changes.
+    let tagResolve: (label: string) => string = () => '#888888'
+    let tagLen = -1, lastCfg: Config | null = null
     function frame(now: number) {
       const t = (now - t0) / 1000
       const env = envRef.current
       const list = live()
       const cfg = env.config
+      if (env.state.events.length !== tagLen || cfg !== lastCfg) {
+        tagLen = env.state.events.length; lastCfg = cfg
+        tagResolve = tagHexResolver(orderedTags(env.state), cfg)
+      }
       const edges = mentionEdges(env.state)
 
       // physics
@@ -140,7 +147,7 @@ export function NetworkView() {
         const n = nodes.get(s.id)!; n.rNow += (radius(s) - n.rNow) * 0.14
         const [sx, sy] = scr(n.x, n.y); const breath = rm ? 1 : 1 + Math.sin(t * 1.1 + n.phase) * 0.025; const r = n.rNow * cam.scale * breath
         const a = matches(s) ? 1 : 0.16; const q = isDormant(s, cfg); const hov = hover === s.id
-        const hexes = s.tags.length ? s.tags.map((tg) => tagHex(tg, cfg)) : [css.getPropertyValue('--accent').trim() || '#c98a2b']
+        const hexes = s.tags.length ? s.tags.map((tg) => tagResolve(tg)) : [css.getPropertyValue('--accent').trim() || '#c98a2b']
         const mix = blend(hexes)
         const rec = q ? 0.1 : Math.max(0, 1 - (Date.now() - new Date(s.lastActivityAt).getTime()) / (22 * 86400000))
         const glow = (0.06 + rec * 0.32 + (hov ? 0.3 : 0)) * a

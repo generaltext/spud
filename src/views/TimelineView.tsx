@@ -3,7 +3,7 @@ import { useStore } from '../lib/store'
 import { useUi } from '../components/ui'
 import { allSpuds, eventsForSpud, timelineLinks, type IdeaEvent } from '../lib/reducer'
 import { versionShort } from '../lib/maturity'
-import { tagHex } from '../lib/model'
+import { useTagHex } from '../components/TagChips'
 import { TagDots } from '../components/TagChips'
 import { EmptyState } from '../components/common'
 
@@ -30,7 +30,8 @@ function EventDot({ e, x }: { e: IdeaEvent; x: number }) {
 }
 
 export function TimelineView() {
-  const { state, config } = useStore()
+  const { state } = useStore()
+  const hexOf = useTagHex()
   const { openIdea, activeTags } = useUi()
   const roRef = useRef<ResizeObserver | null>(null)
   const [vw, setVw] = useState(0)
@@ -137,7 +138,7 @@ export function TimelineView() {
                 {links.map((l, i) => {
                   const ax = xPx(l.atTs), ay = trackCenterY(rowIndex.get(l.from)!)
                   const bx = xPx(l.targetTs), by = trackCenterY(rowIndex.get(l.to)!)
-                  const col = tagHex(state.spuds[l.to]!.tags[0] ?? '', config)
+                  const col = hexOf(state.spuds[l.to]!.tags[0] ?? '')
                   const hot = hovered === l.from || hovered === l.to
                   const bend = Math.max(20, Math.min(120, Math.abs(ay - by) * 0.28))
                   return (
